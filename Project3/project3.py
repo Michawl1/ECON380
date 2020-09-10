@@ -21,7 +21,7 @@ init_immune = int(3500 * 0.0)
 # 1.4 set the transmission rate as 0.8
 beta = 0.8
 # 1.5 set the recover rate as 0.05
-gamma = 0.5
+gamma = 0.05
 
 # =============================================================================
 # Section 2. define the initial status table
@@ -55,28 +55,38 @@ for day in total_days:
     # new infected cannot be greater than currently susceptible (somewhere on here I don't know where)
 
     # calculate new_infect
+    new_infect = sir_sim[0, 1] * beta
 
     # set total susceptible number as the  upper limit of new_infected
+    if new_infect > sir_sim[0, 0]:
+        new_infect = sir_sim[0, 0]
 
     # calculate new recovered number
+    new_recovered = sir_sim[0, 1] * gamma
 
     # remove new infections from susceptible group
-    sir_sim[0, 0]
+    sir_sim[0, 1] = sir_sim[0, 1] - new_recovered
 
     # add new infections into infected group, 
     # also remove recovers from the infected group
-    sir_sim[0, 1]
+    sir_sim[0, 1] += new_infect
 
     # add recovers to the recover group
-    sir_sim[0, 2]
+    sir_sim[0, 2] += new_recovered
 
     # set lower limits of the groups (0 people)
+    if sir_sim[0, 0] < 0:
+        sir_sim[0, 0] = 0
+    if sir_sim[0, 1] < 0:
+        sir_sim[0, 1] = 0
+    if sir_sim[0, 2] < 0:
+        sir_sim[0, 2] = 0
 
     # normalize the SIR (i.e., calculate % of population),
     # and append to the record lists
     s = sir_sim[0, 0] / n
-    i = 0
-    r = 0
+    i = sir_sim[0, 1] / n
+    r = sir_sim[0, 2] / n
 
     susceptible_pop_norm.append(s)
     infected_pop_norm.append(i)
