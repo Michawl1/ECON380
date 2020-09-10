@@ -52,6 +52,8 @@ total_days = np.linspace(1, days, num=days)  # no need to change. done for you.
 
 # 3.4 iterate through the 100 days
 for day in total_days:
+    # new infected cannot be greater than currently susceptible (somewhere on here I don't know where)
+
     # calculate new_infect
 
     # set total susceptible number as the  upper limit of new_infected
