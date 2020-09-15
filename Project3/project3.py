@@ -36,6 +36,7 @@ sir[0, 1] = init_infect
 sir[0, 2] = init_immune
 # up to here, you should have the initial sir matrix .
 
+
 # =============================================================================
 # Section 3. simulate the epidemic of the virus
 # =============================================================================
@@ -52,8 +53,6 @@ total_days = np.linspace(1, days, num=days)  # no need to change. done for you.
 
 # 3.4 iterate through the 100 days
 for day in total_days:
-    # new infected cannot be greater than currently susceptible (somewhere on here I don't know where)
-
     # calculate new_infect
     new_infect = sir_sim[0, 1] * beta
 
@@ -65,11 +64,12 @@ for day in total_days:
     new_recovered = sir_sim[0, 1] * gamma
 
     # remove new infections from susceptible group
-    sir_sim[0, 1] = sir_sim[0, 1] - new_recovered
+    sir_sim[0, 0] -= new_infect
 
     # add new infections into infected group, 
     # also remove recovers from the infected group
     sir_sim[0, 1] += new_infect
+    sir_sim[0, 1] = sir_sim[0, 1] - new_recovered
 
     # add recovers to the recover group
     sir_sim[0, 2] += new_recovered
