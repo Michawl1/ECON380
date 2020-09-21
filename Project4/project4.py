@@ -23,39 +23,47 @@ n_j = np.array([18000, 22000, 50100, 21010, 25000])
 # 1.3 use the random integer generation function in numpy to create a 5 x 5
 # Origination-Destination flow matrix
 # Set the lower limit to 1000, upper limit to 3,000
-od_matrix = np.random.randint(1000, 3000)
-
-'''
-#1.4 same modal share across all regione (1)
-alpha_vec = np.full(len(n_j),1) 
-#1.5 same transmission rate across all regions
-beta_vec = 
-#1.6 same recover rate  across all regions
-gamma_vec = 
-#1.7 normal o-d flow
-od_flow = 
-#1.8 Have 300 iterations
+od_matrix = np.random.randint(1000, 3001, (5, 5))
+# 1.4 same modal share across all regions (1)
+alpha_vec = np.full(len(n_j), 1)
+# 1.5 same transmission rate across all regions
+beta_vec = np.full(len(n_j), 0.8)
+# 1.6 same recover rate  across all regions
+gamma_vec = np.full(len(n_j), 0.05)
+# 1.7 normal o-d flow
+od_flow = 1
+# 1.8 Have 300 iterations
 days = 300
 
 
-
-#=============================================================================
-#Section 2. define the initial status table
-#=============================================================================
+# =============================================================================
+# Section 2. define the initial status table
+# =============================================================================
 # assume in the beginning, no recover or died yet, 
 # infected proportion in areas are:
 # areaA: 1%; areaB: 0.5%; areaC:0.1%; arerD:0%, areaE:0%
 
-def start_detect(n_j,detect,immune):
-    sir = np.zeros(shape=(5, 4))  
+def start_detect(n_j, detect, immune):
+    sir = np.zeros(shape=(4, 5))
+
+    for i in range(0, n_j.size):
+        sir[0][i] = n_j[i]
+
+    for i in range(0, len(detect)):
+        sir[1][i] = detect[i]
+
+    for i in range(0, len(immune)):
+        sir[2][i] = immune[i]
 
     return sir
-sir = start_detect()
 
 
-#=============================================================================
-#Section 3. Define a function to simulate the epidemic in this big region
-#=============================================================================
+sir = start_detect(n_j, [0.01, 0.05, 0.1, 0, 0], [0, 0, 0, 0, 0])
+print(sir)
+
+# =============================================================================
+# Section 3. Define a function to simulate the epidemic in this big region
+# =============================================================================
 # function input should include:
 # n_j:              population vector
 # initial status:   the initial status of the epidemic
@@ -70,8 +78,8 @@ sir = start_detect()
 # infected_pop_norm: changes in the proportion of  I group (aggregated)
 # recovered_pop_norm: changes in the proportion of R group (aggregated)
 
-def epidemic_sim(n_j, initial_status,od_flow, 
-                 alpha_vec,beta_vec,fatality_vec,gamma_vec,days):
+def epidemic_sim(n_j, initial_status, od_flow,
+                 alpha_vec, beta_vec, fatality_vec, gamma_vec, days):
     """
     Parameters
     ----------
@@ -100,92 +108,80 @@ def epidemic_sim(n_j, initial_status,od_flow,
         DESCRIPTION.
 
     """
-     
-    #3.1 make copy of the initial sir table
-    sir_sim = 
 
-    #3.2 create empty list to keep tracking the changes
+    # 3.1 make copy of the initial sir table
+    sir_sim = initial_status.copy()
+
+    # 3.2 create empty list to keep tracking the changes
     susceptible_pop_norm = []
     infected_pop_norm = []
     recovered_pop_norm = []
     dead_pop_norm = []
-    
-    #3.3. use total_days as the interator
-    total_days = 
+
+    # 3.3. use total_days as the iterator
+    total_days =
     for day in total_days:
-        
         ##3.4 figure out where those infected people go
-        
+
         # normalize the sir table by calculating the percentage of each group
-   
+
         # assuming the infected people travel to all ares with the same probability:  
 
         # od_infected gives the flow of infected people. i.e., where they go         
 
-
-        # "inflow infected" are those who will spread the disease to susceptible    
+        # "inflow infected" are those who will spread the disease to susceptible
         inflow_infected =  # total infected inflow in each area
         inflow_infected =  # consider population density
 
-        #3.5 calculate new_infect    
-        new_infect = 
- 
-        #3.6 set upper limit of the infected group (total susceptible)          
-        new_infect = 
-    
-        #3.7 calculate total number of people recovered        
-        new_recovered = 
+        # 3.5 calculate new_infect
+        new_infect =
 
-    
-        
-        #3.8 remove new infections from susceptible group      
+        # 3.6 set upper limit of the infected group (total susceptible)
+        new_infect =
 
+        # 3.7 calculate total number of people recovered
+        new_recovered =
 
-        #3.9 add new infections into infected group, 
+        # 3.8 remove new infections from susceptible group
+
+        # 3.9 add new infections into infected group,
         # also remove recovers from the infected group
 
+        # 3.10 add recovers to the recover group
 
-        #3.10 add recovers to the recover group       
+        # 3.11 set lower limits of the groups (0 people)
+        sir_sim = np.where(sir_sim < 0, 0, sir_sim)
 
-
-
-        #3.11 set lower limits of the groups (0 people)        
-        sir_sim = np.where(sir_sim<0,0,sir_sim)
-
-                 
-        #3.12 compute the normalized SIR matrix on aggregate level
+        # 3.12 compute the normalized SIR matrix on aggregate level
         region_sum = sir_sim.sum(axis=0)
 
-
-        
     return [infected_pop_norm, susceptible_pop_norm, recovered_pop_norm,
             dead_pop_norm]
 
 
+# 3.13 call the function to simulate the epidemic
+outcome = epidemic_sim(n_j, sir, od_flow, alpha_vec, beta_vec, fatality_vec,
+                       gamma_vec, days=days)
 
 
+# =============================================================================
+# Section 4. define a function to visualize the simulation result
+# =============================================================================
+def sir_simulation_plot(outcome, days):
+    fig = plt.figure(figsize=(10, 8))
 
-#3.13 call the function to simulate the epidemic
-outcome = epidemic_sim(n_j,sir,od_flow, alpha_vec,beta_vec,fatality_vec,
-                        gamma_vec,days=days)
 
-#=============================================================================
-#Section 4. define a function to visualize the simulation result
-#=============================================================================
-def sir_simulation_plot(outcome,days):
-    fig = plt.figure(figsize=(10,8))
+sir_simulation_plot(outcome, days=days)
 
-sir_simulation_plot(outcome,days=days)
-
-#=============================================================================
-#Section 5. Policy evaluation
-#=============================================================================
+# =============================================================================
+# Section 5. Policy evaluation
+# =============================================================================
 # Using the simulation model to evaluate the following policy targets
 # Visualize the results, organize the plots in a 2x2 figure, each outcome on 
 # one subplot.
 
-#Policy 1. do nothing (this should have been done in )
-#Policy 2. reduce the o-d flow by 50%, all other arguments stay unchanged
-#Policy 3. reduce the o-d flow by 80%, all other arguments stay unchanged
-#Policy 4. reduce the o-d flow by 80%, reduce beta by 50%, all other the same
-'''
+# Policy 1. do nothing (this should have been done in )
+# Policy 2. reduce the o-d flow by 50%, all other arguments stay unchanged
+# Policy 3. reduce the o-d flow by 80%, all other arguments stay unchanged
+# Policy 4. reduce the o-d flow by 80%, reduce beta by 50%, all other the same
+
