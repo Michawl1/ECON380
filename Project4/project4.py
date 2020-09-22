@@ -35,6 +35,8 @@ od_flow = 1
 # 1.8 Have 300 iterations
 days = 300
 
+fatality_vec = np.zeros(5)
+
 
 # =============================================================================
 # Section 2. define the initial status table
@@ -43,23 +45,18 @@ days = 300
 # infected proportion in areas are:
 # areaA: 1%; areaB: 0.5%; areaC:0.1%; arerD:0%, areaE:0%
 
-def start_detect(n_j, detect, immune):
-    sir = np.zeros(shape=(4, 5))
+def start_detect(n_j, infected, immune):
+    sir = np.zeros(shape=(3, 5))
 
     for i in range(0, n_j.size):
-        sir[0][i] = n_j[i]
-
-    for i in range(0, len(detect)):
-        sir[1][i] = detect[i]
-
-    for i in range(0, len(immune)):
+        sir[1][i] = infected[i] * n_j[i]
+        sir[0][i] = n_j[i] - sir[1][i]
         sir[2][i] = immune[i]
 
     return sir
 
 
-sir = start_detect(n_j, [0.01, 0.05, 0.1, 0, 0], [0, 0, 0, 0, 0])
-print(sir)
+sir = start_detect(n_j, [0.01, 0.005, 0.01, 0, 0], [0, 0, 0, 0, 0])
 
 # =============================================================================
 # Section 3. Define a function to simulate the epidemic in this big region
@@ -119,43 +116,42 @@ def epidemic_sim(n_j, initial_status, od_flow,
     dead_pop_norm = []
 
     # 3.3. use total_days as the iterator
-    total_days =
-    for day in total_days:
-        ##3.4 figure out where those infected people go
+    for j in range(0, days):
+        s = []
+        inf = []
+        r = []
+        d = []
 
-        # normalize the sir table by calculating the percentage of each group
+        for i in range(0, n_j.size):
+            new_infect = sir_sim[0, i] * beta_vec[i]
+            if new_infect > sir_sim[0, i]:
+                new_infect = sir_sim[0, i]
 
-        # assuming the infected people travel to all ares with the same probability:  
+            new_recovered = sir_sim[1, i] * gamma_vec[i]
+            sir_sim[0, i] -= new_infect
+            sir_sim[1, i] += new_infect
+            sir_sim[1, i] = sir_sim[0, 1] - new_recovered
 
-        # od_infected gives the flow of infected people. i.e., where they go         
+            sir_sim[2, i] += new_recovered
+            if sir_sim[0, i] < 0:
+                sir_sim[0, i] = 0
+            if sir_sim[1, i] < 0:
+                sir_sim[1, i] = 0
+            if sir_sim[2, i] < 0:
+                sir_sim[2, i] = 0
 
-        # "inflow infected" are those who will spread the disease to susceptible
-        inflow_infected =  # total infected inflow in each area
-        inflow_infected =  # consider population density
+            s.append(sir_sim[0, i] / n_j[i])
+            inf.append(sir_sim[1, i] / n_j[i])
+            r.append(sir_sim[2, i] / n_j[i])
+            d.append(0)
 
-        # 3.5 calculate new_infect
-        new_infect =
+        susceptible_pop_norm.append(sum(s) / len(s))
+        infected_pop_norm.append(sum(inf) / len(inf))
+        recovered_pop_norm.append(sum(r) / len(r))
+        dead_pop_norm.append(sum(d) / len(d))
 
-        # 3.6 set upper limit of the infected group (total susceptible)
-        new_infect =
 
-        # 3.7 calculate total number of people recovered
-        new_recovered =
-
-        # 3.8 remove new infections from susceptible group
-
-        # 3.9 add new infections into infected group,
-        # also remove recovers from the infected group
-
-        # 3.10 add recovers to the recover group
-
-        # 3.11 set lower limits of the groups (0 people)
-        sir_sim = np.where(sir_sim < 0, 0, sir_sim)
-
-        # 3.12 compute the normalized SIR matrix on aggregate level
-        region_sum = sir_sim.sum(axis=0)
-
-    return [infected_pop_norm, susceptible_pop_norm, recovered_pop_norm,
+    return [susceptible_pop_norm, infected_pop_norm, recovered_pop_norm,
             dead_pop_norm]
 
 
@@ -170,8 +166,25 @@ outcome = epidemic_sim(n_j, sir, od_flow, alpha_vec, beta_vec, fatality_vec,
 def sir_simulation_plot(outcome, days):
     fig = plt.figure(figsize=(10, 8))
 
+    ax = fig.add_subplot(1, 1, 1)
+    days = np.linspace(1, days, num=days)
+    susceptible = np.array(outcome[0]) * 100
+    infected = np.array(outcome[1]) * 100
+    recovered = np.array(outcome[2]) * 100
+    dead = np.array(outcome[3]) * 100
+    ax.plot(days, susceptible, label='susceptible', color='y')
+    ax.plot(days, infected, label='infected', color='r')
+    ax.plot(days, recovered, label='recovered', color='g')
+    ax.plot(days, dead, label='dead', color='b')
+    ax.set_xlabel('Days')
+    ax.set_ylabel('Proportion of the population')
+    ax.set_title("SIR Model Simulation")
 
-sir_simulation_plot(outcome, days=days)
+    plt.legend()
+    plt.show()
+
+
+sir_simulation_plot(outcome, days)
 
 # =============================================================================
 # Section 5. Policy evaluation
@@ -185,3 +198,64 @@ sir_simulation_plot(outcome, days=days)
 # Policy 3. reduce the o-d flow by 80%, all other arguments stay unchanged
 # Policy 4. reduce the o-d flow by 80%, reduce beta by 50%, all other the same
 
+outcome1 = epidemic_sim(n_j, sir, od_flow, alpha_vec, beta_vec, fatality_vec,
+                       gamma_vec, days=days)
+outcome2 = epidemic_sim(n_j, sir, 0.5, alpha_vec, beta_vec, fatality_vec,
+                       gamma_vec, days=days)
+outcome3 = epidemic_sim(n_j, sir, 0.8, alpha_vec, beta_vec, fatality_vec,
+                       gamma_vec, days=days)
+outcome4 = epidemic_sim(n_j, sir, 0.8, alpha_vec, np.full(len(n_j), 0.4), fatality_vec,
+                       gamma_vec, days=days)
+
+fig, axs = plt.subplots(2, 2)
+
+days = np.linspace(1, days, num=days)
+susceptible = np.array(outcome1[0]) * 100
+infected = np.array(outcome1[1]) * 100
+recovered = np.array(outcome1[2]) * 100
+dead = np.array(outcome1[3]) * 100
+axs[0, 0].plot(days, susceptible, label='susceptible', color='y')
+axs[0, 0].plot(days, infected, label='infected', color='r')
+axs[0, 0].plot(days, recovered, label='recovered', color='g')
+axs[0, 0].plot(days, dead, label='dead', color='b')
+axs[0, 0].set_xlabel('Days')
+axs[0, 0].set_ylabel('Proportion of the population')
+axs[0, 0].set_title("SIR Model Simulation")
+
+susceptible = np.array(outcome2[0]) * 100
+infected = np.array(outcome2[1]) * 100
+recovered = np.array(outcome2[2]) * 100
+dead = np.array(outcome2[3]) * 100
+axs[1, 0].plot(days, susceptible, label='susceptible', color='y')
+axs[1, 0].plot(days, infected, label='infected', color='r')
+axs[1, 0].plot(days, recovered, label='recovered', color='g')
+axs[1, 0].plot(days, dead, label='dead', color='b')
+axs[1, 0].set_xlabel('Days')
+axs[1, 0].set_ylabel('Proportion of the population')
+axs[1, 0].set_title("SIR Model Simulation")
+
+susceptible = np.array(outcome3[0]) * 100
+infected = np.array(outcome3[1]) * 100
+recovered = np.array(outcome3[2]) * 100
+dead = np.array(outcome3[3]) * 100
+axs[0, 1].plot(days, susceptible, label='susceptible', color='y')
+axs[0, 1].plot(days, infected, label='infected', color='r')
+axs[0, 1].plot(days, recovered, label='recovered', color='g')
+axs[0, 1].plot(days, dead, label='dead', color='b')
+axs[0, 1].set_xlabel('Days')
+axs[0, 1].set_ylabel('Proportion of the population')
+axs[0, 1].set_title("SIR Model Simulation")
+
+susceptible = np.array(outcome4[0]) * 100
+infected = np.array(outcome4[1]) * 100
+recovered = np.array(outcome4[2]) * 100
+dead = np.array(outcome4[3]) * 100
+axs[1, 1].plot(days, susceptible, label='susceptible', color='y')
+axs[1, 1].plot(days, infected, label='infected', color='r')
+axs[1, 1].plot(days, recovered, label='recovered', color='g')
+axs[1, 1].plot(days, dead, label='dead', color='b')
+axs[1, 1].set_xlabel('Days')
+axs[1, 1].set_ylabel('Proportion of the population')
+axs[1, 1].set_title("SIR Model Simulation")
+
+plt.show()
