@@ -8,6 +8,8 @@ Due on: September 28 2020. 11:59 PM
 
 """
 import random
+import matplotlib.pyplot as plt
+import numpy as np
 
 random.seed(380)
 
@@ -23,12 +25,12 @@ random.seed(380)
 
 class Econ_agent:
     def __init__(self, id_number, budget):
-        self._id_number = id_number
-        self._budget = budget
+        self.id_number = id_number
+        self.budget = budget
 
     def introduce_me(self):
-        print("Id of this agent: " + self._id_number)
-        print("Budget of this agent: " + self._budget)
+        print("Id of this agent: " + self.id_number)
+        print("Budget of this agent: " + self.budget)
 
 
 # 1.2 define  "Consumer" as a child class of Econ_agent;
@@ -50,16 +52,16 @@ class Econ_agent:
 
 
 class Consumer(Econ_agent):
-    def __init__(self, id_number, budget, preference, wtp):
+    def __init__(self, id_number, budget, preference):
         Econ_agent.__init__(self, id_number, budget)
-        self._preference = preference
-        self._wtp = wtp
+        self.preference = preference
+        self.wtp = self.budget * self.preference
 
     def buying(self, price):
-        if self._wtp < price:
-            return "won't buy"
-        else:
-            return "will buy"
+        return not self.wtp < price
+
+    def key(self):
+        return self.wtp
 
 
 # 1.3 define "Producer" as a child class of Econ_agent;
@@ -81,13 +83,16 @@ class Consumer(Econ_agent):
 class Producer(Econ_agent):
     def __init__(self, id_number, budget, opp_cost):
         Econ_agent.__init__(self, id_number, budget)
-        self._opp_cost = opp_cost
+        self.opp_cost = opp_cost
 
     def selling(self, price):
-        if self._opp_cost > price:
+        if self.opp_cost > price:
             return 0
         else:
-            return self._budget/self._opp_cost
+            return self.budget / self.opp_cost
+
+    def key(self):
+        return self.opp_cost
 
 
 # =============================================================================
@@ -100,11 +105,17 @@ class Producer(Econ_agent):
 # preference is determined by a random draw from a uniform distribution [0,1]
 consumers = []
 
+for i in range(1, 201):
+    consumers.append(Consumer(i, random.normalvariate(500, 100), random.uniform(0, 1)))
+
 # 2.2 generate a list of 200 producers
 # each has a unique id number
 # budget is determined by a random draw from a UNIFORM distribution [10,800]
 # opp_cost is determined by  a drandom draw from uniform distribution [100,200]
 producers = []
+
+for i in range(1, 201):
+    producers.append(Producer(i, random.uniform(10, 800), random.uniform(100, 200)))
 
 # =============================================================================
 # Section 3. Simulate the market mechanism, and find the equilibrium
@@ -117,30 +128,85 @@ producers = []
 
 # Hint: you will need to think the process through before coding.
 
-while abs(total_demand - total_supply) > 5:
+producers.sort(key=Producer.key)
+consumers.sort(key=Consumer.key)
+
+
+def total_demand(_consumers, _price):
+    total_demand = 0
+    for consumer in _consumers:
+        if consumer.buying(_price):
+            total_demand += consumer.budget / consumer.wtp
+
+    return total_demand
+
+
+def total_supply(_producers, _price):
+    total_supply = 0
+
+    for producer in _producers:
+        total_supply += producer.selling(_price)
+
+    return total_supply
+
+
+price = 0
+while abs(total_supply(producers, price) - total_demand(consumers, price)) > 5:
+    price += 1
+
+print("Equilibrium price: " + str(price))
 
 
 # =============================================================================
 # Section4. Define the demand curve and supply curve 
 # =============================================================================
 # 4.1. Define the demand curve when price ranging from 100 to 200
-def demand():
+def demand(_consumers):
+    _demand = []
+    for i in range(100, 201):
+        _demand.append(total_demand(_consumers, i))
+    return _demand
 
 
 # 4.2. Define the supply curve when price ranging from 100 to 200
-def supply():
+def supply(_producers):
+    _supply = []
+    for i in range(100, 201):
+        _supply.append(total_supply(_producers, i))
+    return _supply
 
 
 # 4.3 visualize the demand and supply, see if it makes sense.
-
+fig = plt.figure(figsize=(10, 8))
+_price = np.linspace(100, 200, num=101)
+ax = fig.add_subplot(1, 1, 1)
+ax.plot(demand(consumers), _price, label='demand', color='b')
+ax.plot(supply(producers), _price, label='supply', color='r')
+ax.set_xlabel("Quantity")
+ax.set_ylabel("Price")
+plt.legend()
+plt.show()
 
 # =============================================================================
 # Section 5. Changes in supply
 # =============================================================================
 # imagine there is a technology improvement, reduce the average opp_cost by 10%
 # run a simulation to find the new market equilibrium
-# visualize the change graphically 
+# visualize the change graphically
+new_producers = []
+for i in range(1, 201):
+    new_producers.append(Producer(i, producers[i - 1].budget, producers[i - 1].opp_cost * .9))
 
+fig = plt.figure(figsize=(10, 8))
+_price = np.linspace(100, 200, num=101)
+ax = fig.add_subplot(1, 1, 1)
+ax.plot(demand(consumers), _price, label='demand', color='b')
+ax.plot(supply(producers), _price, label='supply', color='r')
+ax.plot(supply(new_producers), _price, label='new supply', color='y')
+ax.set_xlabel("Quantity")
+ax.set_ylabel("Price")
+plt.legend()
+plt.show()
 
 # =============================================================================
 # Section 6 (OPTIONAL). Is the demand elastic or inelastic? 
